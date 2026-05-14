@@ -27,12 +27,18 @@ app.use((req, res, next) => {
 const mongoURI = process.env.MONGODB_URI;
 console.log('🔗 Intentando conectar a:', mongoURI.replace(/:([^@]+)@/, ':****@'));
 
+let lastMongoError = 'Ninguno';
+
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 5000
 })
-  .then(() => console.log('✅ Conectado a MongoDB Atlas'))
+  .then(() => {
+    console.log('✅ Conectado a MongoDB Atlas');
+    lastMongoError = 'Conectado';
+  })
   .catch(err => {
     console.error('❌ Error de conexión MongoDB:', err.message);
+    lastMongoError = err.message;
   });
 
 // Health check para Vercel
@@ -40,7 +46,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'Servidor activo',
-    mongoConnection: mongoose.connection.readyState, // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
+    mongoConnection: mongoose.connection.readyState, 
+    lastError: lastMongoError,
     envLoaded: !!process.env.MONGODB_URI
   });
 });
