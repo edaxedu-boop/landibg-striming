@@ -9,8 +9,23 @@ import {
   Upload,
   Plus,
   Save,
-  Pencil
+  Pencil,
+  ExternalLink
 } from 'lucide-react';
+
+const getImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('drive.google.com')) {
+    let id = '';
+    if (url.includes('/d/')) {
+      id = url.split('/d/')[1].split('/')[0];
+    } else if (url.includes('id=')) {
+      id = url.split('id=')[1].split('&')[0];
+    }
+    return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+  }
+  return url;
+};
 
 type Tab = 'apps' | 'tv' | 'social' | 'testimonials' | 'faq';
 
@@ -54,7 +69,9 @@ export default function Admin() {
     tiktok: ''
   });
 
-  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:5001/api' : '/api';
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+    ? `${window.location.protocol}//${window.location.hostname}:5001/api` 
+    : '/api';
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -146,8 +163,10 @@ export default function Admin() {
       category: activeTab
     };
     
-    const url = editingId ? `${API_URL}/products/${editingId}` : `${API_URL}/products`;
+    const url = editingId ? `${API_URL}/products/${editingId.toString()}` : `${API_URL}/products`;
     const method = editingId ? 'PUT' : 'POST';
+    
+    console.log('Sending request to:', url, 'Method:', method);
 
     try {
       const res = await fetch(url, {
@@ -161,12 +180,20 @@ export default function Admin() {
         fetchProducts();
         handleCancelEdit();
       } else {
-        const errorData = await res.json();
-        alert('❌ Error: ' + (errorData.error || 'No se pudo guardar'));
+        const text = await res.text();
+        let errorMsg = 'No se pudo guardar';
+        try {
+          const errorData = JSON.parse(text);
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+          console.error('El servidor respondió con algo que no es JSON:', text);
+          errorMsg = 'El servidor devolvió un error inesperado (posiblemente 404). Asegúrate de que el servidor esté corriendo en el puerto 5001.';
+        }
+        alert('❌ Error: ' + errorMsg);
       }
-    } catch (err) {
-      console.error(err);
-      alert('❌ Error de conexión con el servidor');
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      alert(`❌ Error de conexión: ${err.message || 'El servidor no responde'}`);
     } finally {
       setLoading(false);
     }
@@ -443,15 +470,15 @@ export default function Admin() {
                   <p className="text-slate-500 text-center py-10">No hay servicios guardados en esta categoría.</p>
                 ) : (
                   products.filter(p => p.category === activeTab).map((p) => (
-                    <div key={p._id} className="bg-[#111318] p-4 rounded-xl border border-white/5 flex items-center justify-between group">
+                    <div key={p._id} className="bg-[#111318] p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
                       <div className="flex items-center gap-4">
-                        <img src={p.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-slate-800" />
+                        <img src={getImageUrl(p.images[0])} alt="" className="w-12 h-12 rounded-lg object-cover bg-slate-800 shrink-0" />
                         <div>
-                          <h4 className="text-white font-bold">{p.title}</h4>
+                          <h4 className="text-white font-bold line-clamp-1">{p.title}</h4>
                           <p className="text-slate-400 text-xs">{p.priceUSD}$ - S/ {p.pricePEN}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t border-white/5 sm:border-0 pt-3 sm:pt-0">
                         <button 
                           onClick={() => handleEditProduct(p)}
                           className="p-2 text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all"
@@ -535,7 +562,7 @@ export default function Admin() {
                 ) : (
                   testimonialsList.map((t) => (
                     <div key={t._id} className="relative group">
-                      <img src={t.imageUrl} alt="" className="w-full aspect-square object-cover rounded-xl border border-white/5" />
+                      <img src={getImageUrl(t.imageUrl)} alt="" className="w-full aspect-square object-cover rounded-xl border border-white/5" />
                       <button 
                         onClick={() => handleDeleteTestimonial(t._id)}
                         className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
@@ -620,19 +647,19 @@ export default function Admin() {
                   <p className="text-slate-500 text-center py-6">No hay preguntas.</p>
                 ) : (
                   faqsList.map((f) => (
-                    <div key={f._id} className="bg-[#111318] p-4 rounded-xl border border-white/5 flex items-start justify-between group">
-                      <div className="flex gap-4">
-                        <span className="text-2xl">{f.emoji}</span>
+                    <div key={f._id} className="bg-[#111318] p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 group">
+                      <div className="flex items-start gap-4">
+                        <span className="text-2xl shrink-0">{f.emoji}</span>
                         <div>
-                          <h4 className="text-white font-bold">{f.question}</h4>
-                          <p className="text-slate-400 text-sm mt-1">{f.answer}</p>
+                          <h4 className="text-white font-bold text-sm sm:text-base">{f.question}</h4>
+                          <p className="text-slate-400 text-xs mt-1 line-clamp-2">{f.answer}</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => handleDeleteFAQ(f._id)}
-                        className="p-1.5 text-slate-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="w-full sm:w-auto p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all flex justify-center border-t border-white/5 sm:border-0 pt-3 sm:pt-0"
                       >
-                        <LogOut className="w-4 h-4 rotate-180" />
+                        <LogOut className="w-5 h-5 rotate-180" />
                       </button>
                     </div>
                   ))
@@ -650,7 +677,7 @@ export default function Admin() {
       <aside className="w-64 bg-[#111318] border-r border-white/5 hidden md:flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-white/5">
           <h1 className="text-xl font-black text-white uppercase tracking-wider font-display">Admin Panel</h1>
-          <p className="text-xs text-slate-500 mt-1">Rebrand Ecuador</p>
+          <p className="text-xs text-slate-500 mt-1">REBRADING-HM Peru</p>
         </div>
         
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

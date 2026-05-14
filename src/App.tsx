@@ -27,8 +27,23 @@ import {
   Facebook,
   Youtube,
   Zap,
-  X
+  X,
+  ExternalLink
 } from 'lucide-react';
+
+const getImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.includes('drive.google.com')) {
+    let id = '';
+    if (url.includes('/d/')) {
+      id = url.split('/d/')[1].split('/')[0];
+    } else if (url.includes('id=')) {
+      id = url.split('id=')[1].split('&')[0];
+    }
+    return id ? `https://drive.google.com/uc?export=view&id=${id}` : url;
+  }
+  return url;
+};
 
 function CountdownTimer() {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
@@ -134,7 +149,7 @@ function ProductCarousel({ images }: { images: string[] }) {
       <AnimatePresence mode="wait">
         <motion.img
           key={index}
-          src={images[index]}
+          src={getImageUrl(images[index])}
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -461,7 +476,7 @@ export default function App() {
             {[...testimonials, ...testimonials, ...testimonials, ...testimonials, ...testimonials, ...testimonials].map((t, i) => (
               <div key={`${t._id || i}-${i}`} className="w-[130px] md:w-[180px] shrink-0 rounded-[24px] overflow-hidden border border-white/10 shadow-2xl transition-transform hover:scale-105 hover:z-10 group-hover:duration-500">
                  <img 
-                   src={t.imageUrl} 
+                   src={getImageUrl(t.imageUrl)} 
                    alt="Testimonio" 
                    className="w-full h-auto object-cover"
                    referrerPolicy="no-referrer"
@@ -540,7 +555,7 @@ export default function App() {
 
           <div className="text-center space-y-2">
             <p className="text-xs md:text-sm text-slate-500 font-medium tracking-wider">
-              © 2026 REBRAND ECUADOR LUISTDIGITAL · Todos los derechos reservados
+              © 2026 REBRADING-HM Peru · Todos los derechos reservados
             </p>
             <p className="text-slate-400 text-xs font-bold hover:text-white transition-colors">
               rebrandigapk.hm@gmail.com
