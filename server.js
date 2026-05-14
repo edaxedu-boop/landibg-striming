@@ -32,9 +32,18 @@ mongoose.connect(mongoURI, {
 })
   .then(() => console.log('✅ Conectado a MongoDB Atlas'))
   .catch(err => {
-    console.error('❌ Error de conexión:', err);
-    console.log('💡 Tip: Asegúrate de que el usuario y contraseña sean correctos y que tu IP esté permitida.');
+    console.error('❌ Error de conexión MongoDB:', err.message);
   });
+
+// Health check para Vercel
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Servidor activo',
+    mongoConnection: mongoose.connection.readyState, // 0: disconnected, 1: connected, 2: connecting, 3: disconnecting
+    envLoaded: !!process.env.MONGODB_URI
+  });
+});
 
 // Esquema de Producto (Apps y TV)
 const ProductSchema = new mongoose.Schema({
@@ -229,7 +238,8 @@ app.post('/api/login', async (req, res) => {
     
     res.json({ success: true, message: 'Autenticación exitosa' });
   } catch (err) {
-    res.status(500).json({ error: 'Error del servidor' });
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Error interno: ' + err.message });
   }
 });
 
