@@ -219,10 +219,25 @@ export default function App() {
   const [social, setSocial] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const CACHE_KEY = 'landing_cache_v1';
+
   useEffect(() => {
     const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:5001/api' : '/api';
     
-    // Fetch all data - resilient: each endpoint falls back to [] on error
+    // 1. Cargar desde caché (localStorage) de inmediato para carga instantánea
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { products: p, testimonials: t, faqs: f, social: s } = JSON.parse(cached);
+        setProducts(p || []);
+        setTestimonials(t || []);
+        setFaqs(f || []);
+        setSocial(s || null);
+        setIsLoading(false); // Mostrar la página de inmediato con datos cacheados
+      }
+    } catch (_) {}
+
+    // 2. Actualizar en segundo plano desde la API
     const safeFetch = (url: string, fallback: any = []) =>
       fetch(url).then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -230,15 +245,32 @@ export default function App() {
       }).catch(() => fallback);
 
     Promise.all([
-      safeFetch(`${apiBase}/products`, []),
-      safeFetch(`${apiBase}/testimonials`, []),
-      safeFetch(`${apiBase}/faqs`, []),
+      safeFetch(`${apiBase}/products`, null),
+      safeFetch(`${apiBase}/testimonials`, null),
+      safeFetch(`${apiBase}/faqs`, null),
       safeFetch(`${apiBase}/social`, null)
     ]).then(([productsData, testimonialsData, faqsData, socialData]) => {
-      setProducts(Array.isArray(productsData) ? productsData : []);
-      setTestimonials(Array.isArray(testimonialsData) ? testimonialsData : []);
-      setFaqs(Array.isArray(faqsData) ? faqsData : []);
-      setSocial(socialData);
+      const newProducts = Array.isArray(productsData) ? productsData : [];
+      const newTestimonials = Array.isArray(testimonialsData) ? testimonialsData : [];
+      const newFaqs = Array.isArray(faqsData) ? faqsData : [];
+
+      // 3. Guardar en caché solo si hay datos válidos de la API
+      if (productsData !== null || testimonialsData !== null || faqsData !== null) {
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            products: newProducts,
+            testimonials: newTestimonials,
+            faqs: newFaqs,
+            social: socialData,
+            updatedAt: Date.now()
+          }));
+        } catch (_) {}
+        // 4. Actualizar la UI con los datos más recientes
+        setProducts(newProducts);
+        setTestimonials(newTestimonials);
+        setFaqs(newFaqs);
+        setSocial(socialData);
+      }
       setIsLoading(false);
     }).catch(() => {
       setIsLoading(false);
