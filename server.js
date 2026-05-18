@@ -29,6 +29,7 @@ console.log('🔗 Intentando conectar a:', mongoURI.replace(/:([^@]+)@/, ':****@
 
 let lastMongoError = 'Ninguno';
 
+// Intento de conexión inicial
 mongoose.connect(mongoURI, {
   serverSelectionTimeoutMS: 5000
 })
@@ -37,9 +38,32 @@ mongoose.connect(mongoURI, {
     lastMongoError = 'Conectado';
   })
   .catch(err => {
-    console.error('❌ Error de conexión MongoDB:', err.message);
+    console.error('❌ Error de conexión inicial MongoDB:', err.message);
     lastMongoError = err.message;
   });
+
+// Middleware de conexión robusta para entornos Serverless (Vercel)
+app.use(async (req, res, next) => {
+  try {
+    if (mongoose.connection.readyState < 1) {
+      console.log('🔗 Reintentando conexión a MongoDB desde middleware...');
+      await mongoose.connect(mongoURI, {
+        serverSelectionTimeoutMS: 5000
+      });
+      console.log('✅ Conectado a MongoDB Atlas en middleware');
+      lastMongoError = 'Conectado';
+    }
+    next();
+  } catch (err) {
+    console.error('❌ Error en middleware de conexión MongoDB:', err.message);
+    lastMongoError = err.message;
+    if (req.path === '/api/health') {
+      next();
+    } else {
+      res.status(500).json({ error: 'Error de conexión con la base de datos: ' + err.message });
+    }
+  }
+});
 
 // Health check para Vercel
 app.get('/api/health', (req, res) => {

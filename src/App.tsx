@@ -222,20 +222,25 @@ export default function App() {
   useEffect(() => {
     const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:5001/api' : '/api';
     
-    // Fetch all data
+    // Fetch all data - resilient: each endpoint falls back to [] on error
+    const safeFetch = (url: string, fallback: any = []) =>
+      fetch(url).then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      }).catch(() => fallback);
+
     Promise.all([
-      fetch(`${apiBase}/products`).then(res => res.json()),
-      fetch(`${apiBase}/testimonials`).then(res => res.json()),
-      fetch(`${apiBase}/faqs`).then(res => res.json()),
-      fetch(`${apiBase}/social`).then(res => res.json())
+      safeFetch(`${apiBase}/products`, []),
+      safeFetch(`${apiBase}/testimonials`, []),
+      safeFetch(`${apiBase}/faqs`, []),
+      safeFetch(`${apiBase}/social`, null)
     ]).then(([productsData, testimonialsData, faqsData, socialData]) => {
-      setProducts(productsData);
-      setTestimonials(testimonialsData);
-      setFaqs(faqsData);
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setTestimonials(Array.isArray(testimonialsData) ? testimonialsData : []);
+      setFaqs(Array.isArray(faqsData) ? faqsData : []);
       setSocial(socialData);
       setIsLoading(false);
-    }).catch(err => {
-      console.error('Error fetching data:', err);
+    }).catch(() => {
       setIsLoading(false);
     });
   }, []);
