@@ -332,7 +332,7 @@ export default function App() {
                className="relative w-10/12 max-w-md lg:max-w-2xl mx-auto pointer-events-none mt-1 md:mt-2 mb-1"
              >
                <img 
-                 src="/images/img1.png" 
+                 src="/images/img2.png" 
                  alt="Dispositivos" 
                  className="w-full h-auto max-h-[20vh] lg:max-h-[28vh] object-contain drop-shadow-[0_35px_60px_rgba(0,0,0,0.9)]"
                  referrerPolicy="no-referrer"
@@ -347,7 +347,7 @@ export default function App() {
                className="-mt-2 md:mt-0 mb-4 px-4 w-full max-w-4xl mx-auto flex justify-center"
              >
                <img 
-                 src="/images/pagos.png" 
+                 src="/images/pagos3.png" 
                  alt="Métodos de Pago" 
                  className="w-10/12 md:w-full max-w-[280px] md:max-w-md h-auto object-contain drop-shadow-[0_0_20px_rgba(255,193,69,0.2)]"
                />
