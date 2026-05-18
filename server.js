@@ -43,12 +43,14 @@ mongoose.connect(mongoURI, {
 
 // Health check para Vercel
 app.get('/api/health', (req, res) => {
+  const redactedURI = mongoURI ? mongoURI.replace(/:([^@]+)@/, ':****@') : 'No configurada';
   res.json({ 
     status: 'ok', 
     message: 'Servidor activo',
     mongoConnection: mongoose.connection.readyState, 
     lastError: lastMongoError,
-    envLoaded: !!process.env.MONGODB_URI
+    envLoaded: !!process.env.MONGODB_URI,
+    configuredURI: redactedURI
   });
 });
 
